@@ -52,10 +52,15 @@ const Cli = struct {
         defer args.deinit();
         if (!args.skip()) return error.MissingProgramName;
         var cli = Cli{ .text = "" };
+        var seen_output = false;
         var seen_text = false;
+        errdefer if (seen_text) allocator.free(cli.text);
+        errdefer if (seen_output) allocator.free(cli.output);
         while (args.next()) |arg| {
             if (std.mem.eql(u8, arg, "-o") or std.mem.eql(u8, arg, "--output")) {
-                cli.output = args.next() orelse return error.MissingOutputFile;
+                const value = args.next() orelse return error.MissingOutputFile;
+                cli.output = try allocator.dupe(u8, value);
+                seen_output = true;
             } else if (std.mem.eql(u8, arg, "-s") or std.mem.eql(u8, arg, "--size")) {
                 const value = args.next() orelse return error.MissingValue;
                 const dims = try parseSize(value);
@@ -79,11 +84,15 @@ const Cli = struct {
                 return error.UnknownOption;
             } else {
                 if (seen_text) return error.TooManyArguments;
-                cli.text = arg;
+                cli.text = try allocator.dupe(u8, arg);
                 seen_text = true;
             }
         }
         if (cli.text.len == 0) return error.MissingValue;
+        if (!seen_output) {
+            cli.output = try allocator.dupe(u8, "image.png");
+            seen_output = true;
+        }
         return cli;
     }
 };
@@ -97,6 +106,8 @@ pub fn main() !void {
             return err;
         },
     };
+    defer allocator.free(cli.text);
+    defer allocator.free(cli.output);
     if (cli.width == 0 or cli.height == 0) return error.InvalidDimensions;
     const pixel_count = try std.math.mul(usize, cli.width, cli.height);
     const pixel_bytes = try std.math.mul(usize, pixel_count, 4);
