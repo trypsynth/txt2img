@@ -14,7 +14,6 @@ pub fn build(b: *std.Build) void {
     exe.addIncludePath(b.path("lib/stb"));
     exe.root_module.addCSourceFile(.{
         .file = b.path("lib/stb/stb_easy_font_wrapper.c"),
-        .flags = &[_][]const u8{"-std=c99"},
     });
     exe.linkLibC();
     b.installArtifact(exe);
