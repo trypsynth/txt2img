@@ -7,14 +7,14 @@ const usage =
     \\Usage: txt2img "text to draw" [<options>]
     \\
     \\Options:
-    \\    -o, --output name of the file to write to. Defaults to output.png.
-    \\    -s, --size <width>x<height> specifies the size, in pixels, of the generated image. Defaults to 512x512.
-    \\    -bg <color> specifies the background color of the image, see below for details on valid colors. Defaults to white.
-    \\    -fg <color> specifies the foreground color of the image, see below for details on valid colors. Defaults to black.
-    \\    -p, --pos <X,Y> specifies the starting position of the text in the image. Defaults to 16,32.
+    \\    -o, --output name of the file to write to. Defaults to output.png
+    \\    -s, --size <width>x<height> specifies the size, in pixels, of the generated image. Defaults to 512x512
+    \\    -bg <color> specifies the background color of the image, see below for details on valid colors. Defaults to white
+    \\    -fg <color> specifies the foreground color of the image, see below for details on valid colors. Defaults to black
+    \\    -p, --pos <X,Y> specifies the starting position of the text in the image. Defaults to 16,32
     \\
     \\Notes:
-    \\    Colors accept names (white, black, red, etc.), #RRGGBB, or #RRGGBBAA.
+    \\    Colors accept names (white, black, red, etc.), #RRGGBB, or #RRGGBBAA
     \\
 ;
 
