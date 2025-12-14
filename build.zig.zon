@@ -1,0 +1,7 @@
+.{
+    .name = .txt2img,
+    .version = "0.1.0",
+    .dependencies = .{},
+    .paths = .{"src"},
+    .fingerprint = 0x70c9c37173f21f5a,
+}
