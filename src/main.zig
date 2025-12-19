@@ -111,7 +111,7 @@ pub fn main() !void {
         @as(f32, @floatFromInt(cli.pos_x)),
         @as(f32, @floatFromInt(cli.pos_y)),
     });
-    canvas.drawText(cli.text, position, cli.fg, cli.font, cli.scale, .soft);
+    canvas.drawText(cli.text, position, cli.fg, cli.font, cli.scale, .fast);
     if (cli.display) {
         var buffer: [256]u8 = undefined;
         var stdout = std.fs.File.stdout().writer(&buffer);
