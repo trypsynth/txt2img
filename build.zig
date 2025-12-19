@@ -3,6 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const zignal = b.dependency("zignal", .{ .target = target, .optimize = optimize });
     const exe = b.addExecutable(.{
         .name = "txt2img",
         .root_module = b.createModule(.{
@@ -11,11 +12,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
-    exe.addIncludePath(b.path("lib/stb"));
-    exe.root_module.addCSourceFile(.{
-        .file = b.path("lib/stb/stb_easy_font_wrapper.c"),
-    });
-    exe.linkLibC();
+    exe.root_module.addImport("zignal", zignal.module("zignal"));
     b.installArtifact(exe);
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());

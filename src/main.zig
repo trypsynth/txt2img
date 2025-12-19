@@ -1,7 +1,5 @@
 const std = @import("std");
-const c = @cImport({
-    @cInclude("stb_easy_font_wrapper.h");
-});
+const z = @import("zignal");
 
 const usage =
     \\Usage: txt2img "text to draw" [<options>]
@@ -18,23 +16,11 @@ const usage =
     \\
 ;
 
-const Vertex = extern struct {
-    x: f32,
-    y: f32,
-    z: f32,
-    color: [4]u8,
-};
-
 const Color = struct {
     r: u8,
     g: u8,
     b: u8,
     a: u8 = 255,
-};
-
-const Vec2 = struct {
-    x: f32,
-    y: f32,
 };
 
 const Cli = struct {
@@ -109,20 +95,16 @@ pub fn main() !void {
     defer allocator.free(cli.text);
     defer allocator.free(cli.output);
     if (cli.width == 0 or cli.height == 0) return error.InvalidDimensions;
-    const pixel_count = try std.math.mul(usize, cli.width, cli.height);
-    const pixel_bytes = try std.math.mul(usize, pixel_count, 4);
-    const pixels = try allocator.alloc(u8, pixel_bytes);
-    defer allocator.free(pixels);
-    fillBackground(pixels, cli.bg);
-    try drawText(allocator, pixels, cli);
-    try writePng(allocator, cli.output, cli.width, cli.height, pixels);
-}
-
-fn printUsage() !void {
-    var stdout_buffer: [256]u8 = undefined;
-    var stdout = std.fs.File.stdout().writer(&stdout_buffer);
-    try stdout.interface.print(usage, .{});
-    try stdout.interface.flush();
+    var image = try z.Image(z.Rgba(u8)).init(allocator, cli.height, cli.width);
+    defer image.deinit(allocator);
+    image.fill(toRgba(cli.bg));
+    var canvas = z.Canvas(z.Rgba(u8)).init(allocator, image);
+    const position = z.Point(2, f32).init(.{
+        @as(f32, @floatFromInt(cli.pos_x)),
+        @as(f32, @floatFromInt(cli.pos_y)),
+    });
+    canvas.drawText(cli.text, position, toRgba(cli.fg), z.font.font8x8.basic, 1.0, .soft);
+    try image.save(allocator, cli.output);
 }
 
 fn parseSize(raw: []const u8) !struct { width: usize, height: usize } {
@@ -137,109 +119,6 @@ fn parsePos(raw: []const u8) !struct { x: usize, y: usize } {
     const x = try std.fmt.parseInt(usize, raw[0..sep], 10);
     const y = try std.fmt.parseInt(usize, raw[sep + 1 ..], 10);
     return .{ .x = x, .y = y };
-}
-
-fn fillBackground(pixels: []u8, color: Color) void {
-    var i: usize = 0;
-    while (i < pixels.len) : (i += 4) {
-        pixels[i + 0] = color.r;
-        pixels[i + 1] = color.g;
-        pixels[i + 2] = color.b;
-        pixels[i + 3] = color.a;
-    }
-}
-
-fn drawText(allocator: std.mem.Allocator, pixels: []u8, cli: Cli) !void {
-    if (cli.text.len == 0) return;
-    const text_buf = try allocator.alloc(u8, cli.text.len + 1);
-    defer allocator.free(text_buf);
-    @memcpy(text_buf[0..cli.text.len], cli.text);
-    text_buf[cli.text.len] = 0;
-    // stb_easy_font_print averages ~270 bytes per character; add slack for safety.
-    const vertex_bytes = try std.math.mul(usize, cli.text.len + 8, 300);
-    const vertex_buf = try allocator.alignedAlloc(u8, std.mem.Alignment.of(Vertex), vertex_bytes);
-    defer allocator.free(vertex_buf);
-    var fg_bytes = [_]u8{ cli.fg.r, cli.fg.g, cli.fg.b, cli.fg.a };
-    const quad_count = c.stb_easy_font_print_wrapper(
-        @as(f32, @floatFromInt(cli.pos_x)),
-        @as(f32, @floatFromInt(cli.pos_y)),
-        @ptrCast(text_buf.ptr),
-        &fg_bytes,
-        vertex_buf.ptr,
-        @as(c_int, @intCast(vertex_buf.len)),
-    );
-    const quads = @as(usize, @intCast(quad_count));
-    if (quads == 0) return;
-    const stride = @sizeOf(Vertex);
-    var q: usize = 0;
-    while (q < quads) : (q += 1) {
-        var verts: [4]Vec2 = undefined;
-        var v: usize = 0;
-        while (v < 4) : (v += 1) {
-            const offset = (q * 4 + v) * stride;
-            const vert = @as(*const Vertex, @ptrCast(@alignCast(vertex_buf.ptr + offset)));
-            verts[v] = .{ .x = vert.x, .y = vert.y };
-        }
-        drawTriangle(pixels, cli.width, cli.height, verts[0], verts[1], verts[2], cli.fg);
-        drawTriangle(pixels, cli.width, cli.height, verts[0], verts[2], verts[3], cli.fg);
-    }
-}
-
-fn drawTriangle(
-    pixels: []u8,
-    width: usize,
-    height: usize,
-    a: Vec2,
-    b: Vec2,
-    c_vec: Vec2,
-    color: Color,
-) void {
-    const min_x_f = @min(a.x, @min(b.x, c_vec.x));
-    const max_x_f = @max(a.x, @max(b.x, c_vec.x));
-    const min_y_f = @min(a.y, @min(b.y, c_vec.y));
-    const max_y_f = @max(a.y, @max(b.y, c_vec.y));
-    const min_x = std.math.clamp(@as(i32, @intFromFloat(@floor(min_x_f))), 0, @as(i32, @intCast(width)));
-    const max_x = std.math.clamp(@as(i32, @intFromFloat(@ceil(max_x_f))), 0, @as(i32, @intCast(width)));
-    const min_y = std.math.clamp(@as(i32, @intFromFloat(@floor(min_y_f))), 0, @as(i32, @intCast(height)));
-    const max_y = std.math.clamp(@as(i32, @intFromFloat(@ceil(max_y_f))), 0, @as(i32, @intCast(height)));
-    if (max_x <= min_x or max_y <= min_y) return;
-    const denom = ((b.y - c_vec.y) * (a.x - c_vec.x)) + ((c_vec.x - b.x) * (a.y - c_vec.y));
-    if (denom == 0) return;
-    const inv_denom = 1.0 / denom;
-    var y = min_y;
-    while (y < max_y) : (y += 1) {
-        var x = min_x;
-        while (x < max_x) : (x += 1) {
-            const px = @as(f32, @floatFromInt(x)) + 0.5;
-            const py = @as(f32, @floatFromInt(y)) + 0.5;
-            const l1 = ((b.y - c_vec.y) * (px - c_vec.x) + (c_vec.x - b.x) * (py - c_vec.y)) * inv_denom;
-            const l2 = ((c_vec.y - a.y) * (px - c_vec.x) + (a.x - c_vec.x) * (py - c_vec.y)) * inv_denom;
-            const l3 = 1.0 - l1 - l2;
-            if (l1 >= 0 and l2 >= 0 and l3 >= 0) {
-                const idx = (@as(usize, @intCast(y)) * width + @as(usize, @intCast(x))) * 4;
-                pixels[idx + 0] = color.r;
-                pixels[idx + 1] = color.g;
-                pixels[idx + 2] = color.b;
-                pixels[idx + 3] = color.a;
-            }
-        }
-    }
-}
-
-fn writePng(allocator: std.mem.Allocator, path: []const u8, width: usize, height: usize, pixels: []const u8) !void {
-    const path_c = try allocator.alloc(u8, path.len + 1);
-    defer allocator.free(path_c);
-    @memcpy(path_c[0..path.len], path);
-    path_c[path.len] = 0;
-    const result = c.stbi_write_png(
-        @ptrCast(path_c.ptr),
-        @as(c_int, @intCast(width)),
-        @as(c_int, @intCast(height)),
-        4,
-        @ptrCast(pixels.ptr),
-        @as(c_int, @intCast(width * 4)),
-    );
-    if (result == 0) return error.WriteFailed;
 }
 
 fn parseColor(raw: []const u8) !Color {
@@ -279,4 +158,20 @@ fn parseColor(raw: []const u8) !Color {
         if (std.ascii.eqlIgnoreCase(raw, entry.name)) return entry.color;
     }
     return error.InvalidColor;
+}
+
+fn printUsage() !void {
+    var stdout_buffer: [256]u8 = undefined;
+    var stdout = std.fs.File.stdout().writer(&stdout_buffer);
+    try stdout.interface.print(usage, .{});
+    try stdout.interface.flush();
+}
+
+fn toRgba(color: Color) z.Rgba(u8) {
+    return .{
+        .r = color.r,
+        .g = color.g,
+        .b = color.b,
+        .a = color.a,
+    };
 }

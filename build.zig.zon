@@ -1,7 +1,12 @@
 .{
     .name = .txt2img,
     .version = "0.1.0",
-    .dependencies = .{},
+    .dependencies = .{
+        .zignal = .{
+            .url = "git+https://github.com/bfactory-ai/zignal#b71a5c94b4ff64936b2d32f7cc09bd8839839311",
+            .hash = "zignal-0.10.0-dev-OrZ3syLjJQBXYmMxQ4mjNZwkVfHpPc-Ib3e9OVx81_2F",
+        },
+    },
     .paths = .{"src"},
     .fingerprint = 0x70c9c37173f21f5a,
 }
