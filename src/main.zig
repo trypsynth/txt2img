@@ -1,5 +1,6 @@
 const std = @import("std");
 const z = @import("zignal");
+const Color = z.Rgba(u8);
 
 const usage =
     \\Usage: txt2img "text to draw" [<options>]
@@ -10,28 +11,25 @@ const usage =
     \\    -bg <color> specifies the background color of the image, see below for details on valid colors. Defaults to white
     \\    -fg <color> specifies the foreground color of the image, see below for details on valid colors. Defaults to black
     \\    -p, --pos <X,Y> specifies the starting position of the text in the image. Defaults to 16,32
+    \\    --scale scales the text by thi factor
+    \\    -d, --display displays the image in the terminal
     \\
     \\Notes:
     \\    Colors accept names (white, black, red, etc.), #RRGGBB, or #RRGGBBAA
     \\
 ;
 
-const Color = struct {
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8 = 255,
-};
-
 const Cli = struct {
     text: []const u8,
     output: []const u8 = "image.png",
     width: usize = 512,
     height: usize = 512,
-    bg: Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 },
-    fg: Color = .{ .r = 0, .g = 0, .b = 0, .a = 255 },
+    bg: Color = .white,
+    fg: Color = .black,
     pos_x: usize = 16,
     pos_y: usize = 32,
+    scale: f32 = 1,
+    display: bool = false,
 
     fn parse(allocator: std.mem.Allocator) !Cli {
         var args = try std.process.argsWithAllocator(allocator);
@@ -63,6 +61,11 @@ const Cli = struct {
                 const pos = try parsePos(value);
                 cli.pos_x = pos.x;
                 cli.pos_y = pos.y;
+            } else if (std.mem.eql(u8, arg, "--scale")) {
+                const value = args.next() orelse return error.MissingValue;
+                cli.scale = try std.fmt.parseFloat(f32, value);
+            } else if (std.mem.eql(u8, arg, "-d") or std.mem.eql(u8, arg, "--display")) {
+                cli.display = true;
             } else if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
                 try printUsage();
                 return error.HelpRequested;
@@ -95,15 +98,21 @@ pub fn main() !void {
     defer allocator.free(cli.text);
     defer allocator.free(cli.output);
     if (cli.width == 0 or cli.height == 0) return error.InvalidDimensions;
-    var image = try z.Image(z.Rgba(u8)).init(allocator, cli.height, cli.width);
+    var image = try z.Image(Color).init(allocator, cli.height, cli.width);
     defer image.deinit(allocator);
-    image.fill(toRgba(cli.bg));
-    var canvas = z.Canvas(z.Rgba(u8)).init(allocator, image);
+    image.fill(cli.bg);
+    var canvas = z.Canvas(Color).init(allocator, image);
     const position = z.Point(2, f32).init(.{
         @as(f32, @floatFromInt(cli.pos_x)),
         @as(f32, @floatFromInt(cli.pos_y)),
     });
-    canvas.drawText(cli.text, position, toRgba(cli.fg), z.font.font8x8.basic, 1.0, .soft);
+    canvas.drawText(cli.text, position, cli.fg, z.font.font8x8.basic, cli.scale, .soft);
+    if (cli.display) {
+        var buffer: [256]u8 = undefined;
+        var stdout = std.fs.File.stdout().writer(&buffer);
+        try stdout.interface.print("{f}\n", .{image.display(.{ .auto = .{} })});
+        try stdout.interface.flush();
+    }
     try image.save(allocator, cli.output);
 }
 
@@ -128,31 +137,26 @@ fn parseColor(raw: []const u8) !Color {
         if (hex.len != 6 and hex.len != 8) return error.InvalidColor;
         const value = try std.fmt.parseInt(u32, hex, 16);
         if (hex.len == 6) {
-            return Color{
-                .r = @as(u8, @intCast((value >> 16) & 0xff)),
-                .g = @as(u8, @intCast((value >> 8) & 0xff)),
-                .b = @as(u8, @intCast(value & 0xff)),
+            return .{
+                .r = @intCast((value >> 16) & 0xff),
+                .g = @intCast((value >> 8) & 0xff),
+                .b = @intCast(value & 0xff),
             };
         } else {
-            return Color{
-                .r = @as(u8, @intCast((value >> 24) & 0xff)),
-                .g = @as(u8, @intCast((value >> 16) & 0xff)),
-                .b = @as(u8, @intCast((value >> 8) & 0xff)),
-                .a = @as(u8, @intCast(value & 0xff)),
-            };
+            return .initHex(value);
         }
     }
     const named = [_]struct { name: []const u8, color: Color }{
-        .{ .name = "white", .color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } },
-        .{ .name = "black", .color = .{ .r = 0, .g = 0, .b = 0, .a = 255 } },
-        .{ .name = "red", .color = .{ .r = 255, .g = 0, .b = 0, .a = 255 } },
-        .{ .name = "green", .color = .{ .r = 0, .g = 128, .b = 0, .a = 255 } },
-        .{ .name = "blue", .color = .{ .r = 0, .g = 0, .b = 255, .a = 255 } },
-        .{ .name = "gray", .color = .{ .r = 128, .g = 128, .b = 128, .a = 255 } },
-        .{ .name = "grey", .color = .{ .r = 128, .g = 128, .b = 128, .a = 255 } },
-        .{ .name = "yellow", .color = .{ .r = 255, .g = 255, .b = 0, .a = 255 } },
-        .{ .name = "cyan", .color = .{ .r = 0, .g = 255, .b = 255, .a = 255 } },
-        .{ .name = "magenta", .color = .{ .r = 255, .g = 0, .b = 255, .a = 255 } },
+        .{ .name = "white", .color = .initHex(0xffffffff) },
+        .{ .name = "black", .color = .initHex(0x000000ff) },
+        .{ .name = "red", .color = .initHex(0xff0000ff) },
+        .{ .name = "green", .color = .initHex(0x00ff00ff) },
+        .{ .name = "blue", .color = .initHex(0x0000ffff) },
+        .{ .name = "gray", .color = .initHex(0x808080ff) },
+        .{ .name = "grey", .color = .initHex(0x808080ff) },
+        .{ .name = "yellow", .color = .initHex(0xffff00ff) },
+        .{ .name = "cyan", .color = .initHex(0x00ffffff) },
+        .{ .name = "magenta", .color = .initHex(0xff00ffff) },
     };
     for (named) |entry| {
         if (std.ascii.eqlIgnoreCase(raw, entry.name)) return entry.color;
@@ -165,13 +169,4 @@ fn printUsage() !void {
     var stdout = std.fs.File.stdout().writer(&stdout_buffer);
     try stdout.interface.print(usage, .{});
     try stdout.interface.flush();
-}
-
-fn toRgba(color: Color) z.Rgba(u8) {
-    return .{
-        .r = color.r,
-        .g = color.g,
-        .b = color.b,
-        .a = color.a,
-    };
 }
