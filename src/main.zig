@@ -13,6 +13,7 @@ const usage =
     \\    -p, --pos <X,Y> specifies the starting position of the text in the image. Defaults to 16,32
     \\    --scale scales the text by thi factor
     \\    -d, --display displays the image in the terminal
+    \\    -f, --font specifies the BDF/PCF font to use
     \\
     \\Notes:
     \\    Colors accept names (white, black, red, etc.), #RRGGBB, or #RRGGBBAA
@@ -29,6 +30,7 @@ const Cli = struct {
     pos_x: usize = 16,
     pos_y: usize = 32,
     scale: f32 = 1,
+    font: z.BitmapFont = z.font.font8x8.basic,
     display: bool = false,
 
     fn parse(allocator: std.mem.Allocator) !Cli {
@@ -64,6 +66,9 @@ const Cli = struct {
             } else if (std.mem.eql(u8, arg, "--scale")) {
                 const value = args.next() orelse return error.MissingValue;
                 cli.scale = try std.fmt.parseFloat(f32, value);
+            } else if (std.mem.eql(u8, arg, "-f") or std.mem.eql(u8, arg, "--font")) {
+                const value = args.next() orelse return error.MissingValue;
+                cli.font = try z.BitmapFont.load(allocator, value, .all);
             } else if (std.mem.eql(u8, arg, "-d") or std.mem.eql(u8, arg, "--display")) {
                 cli.display = true;
             } else if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
@@ -106,7 +111,7 @@ pub fn main() !void {
         @as(f32, @floatFromInt(cli.pos_x)),
         @as(f32, @floatFromInt(cli.pos_y)),
     });
-    canvas.drawText(cli.text, position, cli.fg, z.font.font8x8.basic, cli.scale, .soft);
+    canvas.drawText(cli.text, position, cli.fg, cli.font, cli.scale, .soft);
     if (cli.display) {
         var buffer: [256]u8 = undefined;
         var stdout = std.fs.File.stdout().writer(&buffer);
