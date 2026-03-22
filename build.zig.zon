@@ -3,8 +3,8 @@
     .version = "0.1.0",
     .dependencies = .{
         .zignal = .{
-            .url = "git+https://github.com/bfactory-ai/zignal#b71a5c94b4ff64936b2d32f7cc09bd8839839311",
-            .hash = "zignal-0.10.0-dev-OrZ3syLjJQBXYmMxQ4mjNZwkVfHpPc-Ib3e9OVx81_2F",
+            .url = "git+https://github.com/bfactory-ai/zignal#a5cdd40d1aa52279b04b52ff4ad7d895b4c9a94a",
+            .hash = "zignal-0.10.0-dev-OrZ3s2YRKABVSf0VzNbMd1kwJ8o7b3LCIqQRm87vNTZV",
         },
     },
     .paths = .{"src"},
