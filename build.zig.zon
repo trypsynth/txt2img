@@ -3,7 +3,7 @@
 	.version = "0.1.0",
 	.dependencies = .{
 		.zignal = .{
-			.url = "git+https://github.com/bfactory-ai/zignal#848a1b84b21e1894ea881cb50c1ed8b6c955bb08",
+			.url = "git+https://github.com/arrufat/zignal#848a1b84b21e1894ea881cb50c1ed8b6c955bb08",
 			.hash = "zignal-0.11.0-dev-OrZ3s67RKgBp9wZoGzjKWYGdrbd5mpuFk6VTMnaELf-9",
 		},
 	},
