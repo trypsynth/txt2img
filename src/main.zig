@@ -33,9 +33,8 @@ const Cli = struct {
 	font: z.BitmapFont = z.font.font8x8.basic,
 	display: bool = false,
 
-	fn parse(init: std.process.Init) !Cli {
-		const allocator = init.gpa;
-		var args = try std.process.Args.iterateAllocator(init.minimal.args, allocator);
+	fn parse(io: std.Io, allocator: std.mem.Allocator, raw_args: std.process.Args) !Cli {
+		var args = try raw_args.iterateAllocator(allocator);
 		defer args.deinit();
 		if (!args.skip()) return error.MissingProgramName;
 		var cli = Cli{ .text = "" };
@@ -69,11 +68,11 @@ const Cli = struct {
 				cli.scale = try std.fmt.parseFloat(f32, value);
 			} else if (std.mem.eql(u8, arg, "-f") or std.mem.eql(u8, arg, "--font")) {
 				const value = args.next() orelse return error.MissingValue;
-				cli.font = try z.BitmapFont.load(init.io, allocator, value, .all);
+				cli.font = try z.BitmapFont.load(io, allocator, value, .all);
 			} else if (std.mem.eql(u8, arg, "-d") or std.mem.eql(u8, arg, "--display")) {
 				cli.display = true;
 			} else if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
-				try printUsage(init.io);
+				try printUsage(io);
 				return error.HelpRequested;
 			} else if (std.mem.startsWith(u8, arg, "-")) {
 				return error.UnknownOption;
@@ -94,10 +93,11 @@ const Cli = struct {
 
 pub fn main(init: std.process.Init) !void {
 	const allocator = init.gpa;
-	const cli = Cli.parse(init) catch |err| switch (err) {
+	const io = init.io;
+	const cli = Cli.parse(io, allocator, init.minimal.args) catch |err| switch (err) {
 		error.HelpRequested => return,
 		else => {
-			try printUsage(init.io);
+			try printUsage(io);
 			return err;
 		},
 	};
@@ -115,11 +115,11 @@ pub fn main(init: std.process.Init) !void {
 	canvas.drawText(cli.text, position, cli.fg, cli.font, cli.scale, .fast);
 	if (cli.display) {
 		var buffer: [256]u8 = undefined;
-		var stdout = std.Io.File.stdout().writer(init.io, &buffer);
-		try stdout.interface.print("{f}\n", .{ image.display(init.io, .{ .auto = .{} }) });
+		var stdout = std.Io.File.stdout().writer(io, &buffer);
+		try stdout.interface.print("{f}\n", .{image.display(io, .{ .auto = .{} })});
 		try stdout.interface.flush();
 	}
-	try image.save(init.io, allocator, cli.output);
+	try image.save(io, allocator, cli.output);
 }
 
 fn parseSize(raw: []const u8) !struct { width: u32, height: u32 } {

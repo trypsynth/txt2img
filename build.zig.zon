@@ -1,12 +1,12 @@
 .{
-    .name = .txt2img,
-    .version = "0.1.0",
-    .dependencies = .{
-        .zignal = .{
-            .url = "git+https://github.com/bfactory-ai/zignal#a5cdd40d1aa52279b04b52ff4ad7d895b4c9a94a",
-            .hash = "zignal-0.10.0-dev-OrZ3s2YRKABVSf0VzNbMd1kwJ8o7b3LCIqQRm87vNTZV",
-        },
-    },
-    .paths = .{"src"},
-    .fingerprint = 0x70c9c37173f21f5a,
+	.name = .txt2img,
+	.version = "0.1.0",
+	.dependencies = .{
+		.zignal = .{
+			.url = "git+https://github.com/bfactory-ai/zignal#848a1b84b21e1894ea881cb50c1ed8b6c955bb08",
+			.hash = "zignal-0.11.0-dev-OrZ3s67RKgBp9wZoGzjKWYGdrbd5mpuFk6VTMnaELf-9",
+		},
+	},
+	.paths = .{"src"},
+	.fingerprint = 0x70c9c37173f21f5a,
 }
