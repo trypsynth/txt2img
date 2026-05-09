@@ -6,14 +6,19 @@ const usage =
 	\\Usage: txt2img "text to draw" [<options>]
 	\\
 	\\Options:
-	\\    -o, --output name of the file to write to. Defaults to output.png
-	\\    -s, --size <width>x<height> specifies the size, in pixels, of the generated image. Defaults to 512x512
-	\\    -bg <color> specifies the background color of the image, see below for details on valid colors. Defaults to white
-	\\    -fg <color> specifies the foreground color of the image, see below for details on valid colors. Defaults to black
-	\\    -p, --pos <X,Y> specifies the starting position of the text in the image. Defaults to 16,32
-	\\    --scale scales the text by thi factor
-	\\    -d, --display displays the image in the terminal
-	\\    -f, --font specifies the BDF/PCF font to use
+	\\    -o, --output <file> Name of the file to write to (default: image.png)
+	\\    -s, --size <width>x<height> Set image dimensions (default: 512x512)
+	\\    -w, --width <value> Set width only
+	\\    -H, --height <value> Set height only
+	\\    -p, --pos <x,y> Starting position of the text (default: 16,32)
+	\\    -x <value> Set x position only
+	\\    -y <value> Set y position only
+	\\    -bg <color> Background color (default: white)
+	\\    -fg <color> Foreground color (default: black)
+	\\    -f, --font <path> BDF/PCF font file to use
+	\\    -S, --scale <factor> Scale factor for the text (default: 1.0)
+	\\    -d, --display Display the image in the terminal
+	\\    -h, --help Display this help message
 	\\
 	\\Notes:
 	\\    Colors accept names (white, black, red, etc.), #RRGGBB, or #RRGGBBAA
@@ -52,6 +57,12 @@ const Cli = struct {
 				const dims = try parseSize(value);
 				cli.width = dims.width;
 				cli.height = dims.height;
+			} else if (std.mem.eql(u8, arg, "-w") or std.mem.eql(u8, arg, "--width")) {
+				const value = args.next() orelse return error.MissingValue;
+				cli.width = (try parseSize(value)).width;
+			} else if (std.mem.eql(u8, arg, "-H") or std.mem.eql(u8, arg, "--height")) {
+				const value = args.next() orelse return error.MissingValue;
+				cli.height = (try parseSize(value)).height;
 			} else if (std.mem.eql(u8, arg, "-bg")) {
 				const value = args.next() orelse return error.MissingValue;
 				cli.bg = try parseColor(value);
@@ -63,7 +74,13 @@ const Cli = struct {
 				const pos = try parsePos(value);
 				cli.pos_x = pos.x;
 				cli.pos_y = pos.y;
-			} else if (std.mem.eql(u8, arg, "--scale")) {
+			} else if (std.mem.eql(u8, arg, "-x")) {
+				const value = args.next() orelse return error.MissingValue;
+				cli.pos_x = (try parsePos(value)).x;
+			} else if (std.mem.eql(u8, arg, "-y")) {
+				const value = args.next() orelse return error.MissingValue;
+				cli.pos_y = (try parsePos(value)).y;
+			} else if (std.mem.eql(u8, arg, "-S") or std.mem.eql(u8, arg, "--scale")) {
 				const value = args.next() orelse return error.MissingValue;
 				cli.scale = try std.fmt.parseFloat(f32, value);
 			} else if (std.mem.eql(u8, arg, "-f") or std.mem.eql(u8, arg, "--font")) {
