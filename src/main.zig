@@ -89,7 +89,7 @@ const Cli = struct {
 			} else if (std.mem.eql(u8, arg, "-d") or std.mem.eql(u8, arg, "--display")) {
 				cli.display = true;
 			} else if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
-				try printUsage(io);
+				std.debug.print(usage, .{});
 				return error.HelpRequested;
 			} else if (std.mem.startsWith(u8, arg, "-")) {
 				return error.UnknownOption;
@@ -114,7 +114,7 @@ pub fn main(init: std.process.Init) !void {
 	const cli = Cli.parse(io, allocator, init.minimal.args) catch |err| switch (err) {
 		error.HelpRequested => return,
 		else => {
-			try printUsage(io);
+			std.debug.print(usage, .{});
 			return err;
 		},
 	};
@@ -185,11 +185,4 @@ fn parseColor(raw: []const u8) !Color {
 		if (std.ascii.eqlIgnoreCase(raw, entry.name)) return entry.color;
 	}
 	return error.InvalidColor;
-}
-
-fn printUsage(io: std.Io) !void {
-	var stdout_buffer: [256]u8 = undefined;
-	var stdout = std.Io.File.stdout().writer(io, &stdout_buffer);
-	try stdout.interface.print(usage, .{});
-	try stdout.interface.flush();
 }
