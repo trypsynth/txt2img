@@ -6,22 +6,22 @@ const usage =
 	\\Usage: txt2img "text to draw" [<options>]
 	\\
 	\\Options:
-	\\    -o, --output <file>         Name of the file to write to (default: image.png)
+	\\    -o, --output <file> Name of the file to write to (default: image.png)
 	\\    -s, --size <width>x<height> Set image dimensions (default: 512x512)
-	\\    -w, --width <value>         Set width only
-	\\    -H, --height <value>        Set height only
-	\\    -p, --pos <x,y>             Starting position of the text (default: 16,32)
-	\\    -x <value>                  Set x position only
-	\\    -y <value>                  Set y position only
-	\\    -bg <color>                 Background color (default: white)
-	\\    -fg <color>                 Foreground color (default: black)
-	\\    -f, --font <path>           BDF/PCF font file to use
-	\\    -S, --scale <factor>        Scale factor for the text (default: 1.0)
-	\\    -F, --fit                   Auto-size image to fit text (overrides --size)
-	\\    --padding <px>              Padding around text in fit mode (default: 8)
-	\\    --shadow <dx,dy>            Draw shadow at offset, e.g. --shadow 2,2
-	\\    --shadow-color <color>      Shadow color (default: #00000080)
-	\\    -d, --display               Display the image in the terminal
+	\\    -w, --width <value> Set width only
+	\\    -H, --height <value> Set height only
+	\\    -p, --pos <x,y> Starting position of the text (default: 16,32)
+	\\    -x <value> Set x position only
+	\\    -y <value> Set y position only
+	\\    -bg <color> Background color (default: white)
+	\\    -fg <color> Foreground color (default: black)
+	\\    -f, --font <path> BDF/PCF font file to use
+	\\    -S, --scale <factor> Scale factor for the text (default: 1.0)
+	\\    -F, --fit Auto-size image to fit text (overrides --size)
+	\\    --padding <px> Padding around text in fit mode (default: 8)
+	\\    --shadow <dx,dy> Draw shadow at offset, e.g. --shadow 2,2
+	\\    --shadow-color <color> Shadow color (default: #00000080)
+	\\    -d, --display Display the image in the terminal
 	\\    -h, --help                  Display this help message
 	\\
 	\\Notes:
