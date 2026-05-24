@@ -37,4 +37,4 @@ Colors accept named values (`white`, `black`, `red`, `green`, `blue`, `gray`, `y
 
 ## License
 
-MIT
+[MIT](LICENSE)
