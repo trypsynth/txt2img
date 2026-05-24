@@ -1,12 +1,12 @@
 .{
-    .name = .txt2img,
-    .version = "0.1.0",
-    .dependencies = .{
-        .zignal = .{
-            .url = "git+https://github.com/arrufat/zignal#9adf86b47841455be650892b8df33066270a1158",
-            .hash = "zignal-0.11.0-dev-OrZ3s7BdKgBp2PCGn6vxrDwlflSzXU5aZ-CtNwox7fwv",
-        },
-    },
-    .paths = .{"src"},
-    .fingerprint = 0x70c9c37173f21f5a,
+	.name = .txt2img,
+	.version = "0.1.0",
+	.dependencies = .{
+		.zignal = .{
+			.url = "git+https://github.com/arrufat/zignal#9adf86b47841455be650892b8df33066270a1158",
+			.hash = "zignal-0.11.0-dev-OrZ3s7BdKgBp2PCGn6vxrDwlflSzXU5aZ-CtNwox7fwv",
+		},
+	},
+	.paths = .{"src"},
+	.fingerprint = 0x70c9c37173f21f5a,
 }
