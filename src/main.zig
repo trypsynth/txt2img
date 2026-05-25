@@ -22,6 +22,7 @@ const usage =
 	\\    --shadow <dx,dy> Draw shadow at offset, e.g. --shadow 2,2
 	\\    --shadow-color <color> Shadow color (default: #00000080)
 	\\    -a, --align <left|center|right> Text alignment (default: left)
+	\\    --line-spacing <px> Additional space between lines (default: 0)
 	\\    -d, --display Display the image in the terminal
 	\\    -h, --help                  Display this help message
 	\\
@@ -51,6 +52,7 @@ const Cli = struct {
 	shadow: ?Shadow = null,
 	shadow_color: Color = .{ .r = 0, .g = 0, .b = 0, .a = 128 },
 	alignment: Alignment = .left,
+	line_spacing: i32 = 0,
 
 	fn parse(io: std.Io, allocator: std.mem.Allocator, raw_args: std.process.Args) !Cli {
 		var args = try raw_args.iterateAllocator(allocator);
@@ -124,6 +126,9 @@ const Cli = struct {
 				} else if (std.mem.eql(u8, value, "right")) {
 					cli.alignment = .right;
 				} else return error.InvalidAlignment;
+			} else if (std.mem.eql(u8, arg, "--line-spacing")) {
+				const value = args.next() orelse return error.MissingValue;
+				cli.line_spacing = try std.fmt.parseInt(i32, value, 10);
 			} else if (std.mem.eql(u8, arg, "-d") or std.mem.eql(u8, arg, "--display")) {
 				cli.display = true;
 			} else if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
@@ -145,7 +150,14 @@ const Cli = struct {
 		if (cli.fit) {
 			const bounds = cli.font.getTextBounds(cli.text, cli.scale);
 			const text_w: u32 = @intFromFloat(@ceil(bounds.r));
-			const text_h: u32 = @intFromFloat(@ceil(bounds.b));
+			var text_h: u32 = @intFromFloat(@ceil(bounds.b));
+			var line_count: u32 = 0;
+			var it = std.mem.splitScalar(u8, cli.text, '\n');
+			while (it.next()) |_| line_count += 1;
+			if (line_count > 1) {
+				const total_spacing = @as(i32, @intCast(line_count - 1)) * cli.line_spacing;
+				text_h = @intCast(@as(i32, @intCast(text_h)) + total_spacing);
+			}
 			cli.width = text_w + 2 * cli.padding;
 			cli.height = text_h + 2 * cli.padding;
 			if (!seen_pos) {
@@ -176,13 +188,9 @@ pub fn main(init: std.process.Init) !void {
 	var canvas = z.Canvas(Color).init(allocator, image);
 	var lines = std.mem.splitScalar(u8, cli.text, '\n');
 	var y_offset: f32 = @floatFromInt(cli.pos_y);
-	const line_h = cli.font.getTextBounds("Ag", cli.scale).b;
+	const line_h_bounds = cli.font.getTextBounds("Ag", cli.scale);
 	while (lines.next()) |line| {
-		if (line.len == 0) {
-			y_offset += line_h;
-			continue;
-		}
-		const bounds = cli.font.getTextBounds(line, cli.scale);
+		const bounds = if (line.len == 0) line_h_bounds else cli.font.getTextBounds(line, cli.scale);
 		var x_offset: f32 = @floatFromInt(cli.pos_x);
 		switch (cli.alignment) {
 			.left => {},
@@ -193,16 +201,18 @@ pub fn main(init: std.process.Init) !void {
 				x_offset = @as(f32, @floatFromInt(cli.width)) - bounds.r - @as(f32, @floatFromInt(cli.padding));
 			},
 		}
-		if (cli.shadow) |s| {
-			const shadow_pos = z.Point(2, f32).init(.{
-				x_offset + @as(f32, @floatFromInt(s.dx)),
-				y_offset + @as(f32, @floatFromInt(s.dy)),
-			});
-			canvas.drawText(line, shadow_pos, cli.shadow_color, cli.font, cli.scale, .fast);
+		if (line.len > 0) {
+			if (cli.shadow) |s| {
+				const shadow_pos = z.Point(2, f32).init(.{
+					x_offset + @as(f32, @floatFromInt(s.dx)),
+					y_offset + @as(f32, @floatFromInt(s.dy)),
+				});
+				canvas.drawText(line, shadow_pos, cli.shadow_color, cli.font, cli.scale, .fast);
+			}
+			const position = z.Point(2, f32).init(.{ x_offset, y_offset });
+			canvas.drawText(line, position, cli.fg, cli.font, cli.scale, .fast);
 		}
-		const position = z.Point(2, f32).init(.{ x_offset, y_offset });
-		canvas.drawText(line, position, cli.fg, cli.font, cli.scale, .fast);
-		y_offset += bounds.b;
+		y_offset += bounds.b + @as(f32, @floatFromInt(cli.line_spacing));
 	}
 	if (cli.display) {
 		var buffer: [256]u8 = undefined;
