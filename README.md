@@ -35,6 +35,10 @@ Options:
 
 Colors accept named values (`white`, `black`, `red`, `green`, `blue`, `gray`, `yellow`, `cyan`, `magenta`), `#RRGGBB`, or `#RRGGBBAA`.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a full history of changes.
+
 ## License
 
 [MIT](LICENSE)
