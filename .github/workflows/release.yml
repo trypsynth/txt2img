@@ -30,7 +30,7 @@ jobs:
             mv zig-out/bin/txt2img txt2img-${{ matrix.target }}
           fi
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: txt2img-${{ matrix.target }}
           path: txt2img-${{ matrix.target }}*
