@@ -21,6 +21,7 @@ const usage =
 	\\    --padding <px> Padding around text in fit mode (default: 8)
 	\\    --shadow <dx,dy> Draw shadow at offset, e.g. --shadow 2,2
 	\\    --shadow-color <color> Shadow color (default: #00000080)
+	\\    -a, --align <left|center|right> Text alignment (default: left)
 	\\    -d, --display Display the image in the terminal
 	\\    -h, --help                  Display this help message
 	\\
@@ -31,6 +32,7 @@ const usage =
 ;
 
 const Shadow = struct { dx: i32, dy: i32 };
+const Alignment = enum { left, center, right };
 
 const Cli = struct {
 	text: []const u8,
@@ -48,6 +50,7 @@ const Cli = struct {
 	padding: u32 = 8,
 	shadow: ?Shadow = null,
 	shadow_color: Color = .{ .r = 0, .g = 0, .b = 0, .a = 128 },
+	alignment: Alignment = .left,
 
 	fn parse(io: std.Io, allocator: std.mem.Allocator, raw_args: std.process.Args) !Cli {
 		var args = try raw_args.iterateAllocator(allocator);
@@ -112,6 +115,15 @@ const Cli = struct {
 			} else if (std.mem.eql(u8, arg, "--shadow-color")) {
 				const value = args.next() orelse return error.MissingValue;
 				cli.shadow_color = try parseColor(value);
+			} else if (std.mem.eql(u8, arg, "-a") or std.mem.eql(u8, arg, "--align")) {
+				const value = args.next() orelse return error.MissingValue;
+				if (std.mem.eql(u8, value, "left")) {
+					cli.alignment = .left;
+				} else if (std.mem.eql(u8, value, "center")) {
+					cli.alignment = .center;
+				} else if (std.mem.eql(u8, value, "right")) {
+					cli.alignment = .right;
+				} else return error.InvalidAlignment;
 			} else if (std.mem.eql(u8, arg, "-d") or std.mem.eql(u8, arg, "--display")) {
 				cli.display = true;
 			} else if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
@@ -162,18 +174,36 @@ pub fn main(init: std.process.Init) !void {
 	defer image.deinit(allocator);
 	image.fill(cli.bg);
 	var canvas = z.Canvas(Color).init(allocator, image);
-	const position = z.Point(2, f32).init(.{
-		@as(f32, @floatFromInt(cli.pos_x)),
-		@as(f32, @floatFromInt(cli.pos_y)),
-	});
-	if (cli.shadow) |s| {
-		const shadow_pos = z.Point(2, f32).init(.{
-			@as(f32, @floatFromInt(cli.pos_x)) + @as(f32, @floatFromInt(s.dx)),
-			@as(f32, @floatFromInt(cli.pos_y)) + @as(f32, @floatFromInt(s.dy)),
-		});
-		canvas.drawText(cli.text, shadow_pos, cli.shadow_color, cli.font, cli.scale, .fast);
+	var lines = std.mem.splitScalar(u8, cli.text, '\n');
+	var y_offset: f32 = @floatFromInt(cli.pos_y);
+	const line_h = cli.font.getTextBounds("Ag", cli.scale).b;
+	while (lines.next()) |line| {
+		if (line.len == 0) {
+			y_offset += line_h;
+			continue;
+		}
+		const bounds = cli.font.getTextBounds(line, cli.scale);
+		var x_offset: f32 = @floatFromInt(cli.pos_x);
+		switch (cli.alignment) {
+			.left => {},
+			.center => {
+				x_offset = (@as(f32, @floatFromInt(cli.width)) - bounds.r) / 2.0;
+			},
+			.right => {
+				x_offset = @as(f32, @floatFromInt(cli.width)) - bounds.r - @as(f32, @floatFromInt(cli.padding));
+			},
+		}
+		if (cli.shadow) |s| {
+			const shadow_pos = z.Point(2, f32).init(.{
+				x_offset + @as(f32, @floatFromInt(s.dx)),
+				y_offset + @as(f32, @floatFromInt(s.dy)),
+			});
+			canvas.drawText(line, shadow_pos, cli.shadow_color, cli.font, cli.scale, .fast);
+		}
+		const position = z.Point(2, f32).init(.{ x_offset, y_offset });
+		canvas.drawText(line, position, cli.fg, cli.font, cli.scale, .fast);
+		y_offset += bounds.b;
 	}
-	canvas.drawText(cli.text, position, cli.fg, cli.font, cli.scale, .fast);
 	if (cli.display) {
 		var buffer: [256]u8 = undefined;
 		var stdout = std.Io.File.stdout().writer(io, &buffer);

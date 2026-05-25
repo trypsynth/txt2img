@@ -1,6 +1,7 @@
 # Changelog
 
 ### In Development
+* Added the `--align` flag for text alignment (left, center, right).
 * Added support for multiline text.
 * Added the `--fit` flag to automatically fit text within image bounds.
 * Added the `--padding` flag to specify text padding.
