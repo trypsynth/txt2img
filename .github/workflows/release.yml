@@ -24,20 +24,16 @@ jobs:
         run: zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseSmall
       - name: Package
         run: |
-          mkdir -p release
-          cp LICENSE README.md release/
           if [[ "${{ matrix.target }}" == *"windows"* ]]; then
-            cp zig-out/bin/txt2img.exe release/
-            cd release && zip -r ../txt2img-${{ matrix.target }}.zip .
+            mv zig-out/bin/txt2img.exe txt2img-${{ matrix.target }}.exe
           else
-            cp zig-out/bin/txt2img release/
-            cd release && tar -czvf ../txt2img-${{ matrix.target }}.tar.gz .
+            mv zig-out/bin/txt2img txt2img-${{ matrix.target }}
           fi
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: txt2img-${{ matrix.target }}
-          path: txt2img-${{ matrix.target }}.*
+          path: txt2img-${{ matrix.target }}*
   release:
     needs: build
     runs-on: ubuntu-latest
