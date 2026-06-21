@@ -36,7 +36,7 @@ const Shadow = struct { dx: i32, dy: i32 };
 const Alignment = enum { left, center, right };
 
 const Cli = struct {
-	text: []const u8,
+	text: []const u8 = "",
 	output: []const u8 = "image.png",
 	width: u32 = 512,
 	height: u32 = 512,
@@ -58,7 +58,7 @@ const Cli = struct {
 		var args = try raw_args.iterateAllocator(allocator);
 		defer args.deinit();
 		if (!args.skip()) return error.MissingProgramName;
-		var cli = Cli{ .text = "" };
+		var cli = Cli{};
 		var seen_output = false;
 		var seen_text = false;
 		var seen_pos = false;
@@ -167,6 +167,11 @@ const Cli = struct {
 		}
 		return cli;
 	}
+
+	fn deinit(self: Cli, allocator: std.mem.Allocator) void {
+		if (self.text.len > 0) allocator.free(self.text);
+		if (self.output.len > 0) allocator.free(self.output);
+	}
 };
 
 pub fn main(init: std.process.Init) !void {
@@ -179,8 +184,7 @@ pub fn main(init: std.process.Init) !void {
 			return err;
 		},
 	};
-	defer allocator.free(cli.text);
-	defer allocator.free(cli.output);
+	defer cli.deinit(allocator);
 	if (cli.width == 0 or cli.height == 0) return error.InvalidDimensions;
 	var image = try z.Image(Color).init(allocator, cli.height, cli.width);
 	defer image.deinit(allocator);
