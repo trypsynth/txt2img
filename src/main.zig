@@ -119,13 +119,7 @@ const Cli = struct {
 				cli.shadow_color = try parseColor(value);
 			} else if (std.mem.eql(u8, arg, "-a") or std.mem.eql(u8, arg, "--align")) {
 				const value = args.next() orelse return error.MissingValue;
-				if (std.mem.eql(u8, value, "left")) {
-					cli.alignment = .left;
-				} else if (std.mem.eql(u8, value, "center")) {
-					cli.alignment = .center;
-				} else if (std.mem.eql(u8, value, "right")) {
-					cli.alignment = .right;
-				} else return error.InvalidAlignment;
+				cli.alignment = std.meta.stringToEnum(Alignment, value) orelse return error.InvalidAlignment;
 			} else if (std.mem.eql(u8, arg, "--line-spacing")) {
 				const value = args.next() orelse return error.MissingValue;
 				cli.line_spacing = try std.fmt.parseInt(i32, value, 10);
