@@ -3,8 +3,8 @@
 	.version = "0.1.0",
 	.dependencies = .{
 		.zignal = .{
-			.url = "git+https://github.com/arrufat/zignal#9adf86b47841455be650892b8df33066270a1158",
-			.hash = "zignal-0.11.0-dev-OrZ3s7BdKgBp2PCGn6vxrDwlflSzXU5aZ-CtNwox7fwv",
+			.url = "git+https://github.com/arrufat/zignal#078b55d55e8df77502bf5b70adbf34bdadbc68ca",
+			.hash = "zignal-0.11.0-dev-OrZ3s0RbLACBO5qksfG34JuC2qGaLJB1IjCZoHQAj9xj",
 		},
 	},
 	.paths = .{"src"},
